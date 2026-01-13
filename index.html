@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>라플 PR 뉴스 센터</title>
+    <style>
+        /* 1. 디자인 (CSS) */
+        body { font-family: 'Pretendard', -apple-system, sans-serif; background-color: #f4f6f8; margin: 0; padding: 0; color: #333; line-height: 1.6; }
+        .container { max-width: 500px; margin: 0 auto; background: white; min-height: 100vh; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
+        
+        /* 헤더 */
+        .header { background: #fff; padding: 15px 20px; display: flex; align-items: center; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 100; }
+        .header img { height: 22px; margin-right: 10px; }
+        .header h1 { font-size: 1.1rem; margin: 0; font-weight: 700; letter-spacing: -0.5px; }
+
+        .section-title { padding: 25px 20px 10px; font-size: 1.1rem; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+
+        /* 메인 탑 기사 */
+        .hero-article { padding: 0 20px 20px; cursor: pointer; border-bottom: 8px solid #f4f6f8; }
+        .hero-img { width: 100%; height: 230px; border-radius: 16px; object-fit: cover; background: #eee; }
+        .hero-title { font-size: 1.15rem; font-weight: bold; margin-top: 15px; line-height: 1.45; word-break: keep-all; }
+
+        /* 리스트 기사 */
+        .article-item { display: flex; padding: 16px 20px; border-bottom: 1px solid #f0f0f0; gap: 15px; align-items: center; cursor: pointer; text-decoration: none; color: inherit; }
+        .article-text { flex: 1; }
+        .article-text h4 { margin: 0 0 6px 0; font-size: 0.95rem; line-height: 1.4; font-weight: 600; color: #222; }
+        .article-info { font-size: 0.8rem; color: #999; }
+        .article-thumbnail { width: 85px; height: 85px; border-radius: 12px; object-fit: cover; background: #f5f5f5; }
+
+        /* 버튼 */
+        .view-more-btn { width: calc(100% - 40px); margin: 20px; padding: 14px; border: 1px solid #e0e0e0; background: #fff; border-radius: 12px; color: #666; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+
+        /* 팝업 모달 */
+        #newsPopup { display: none; position: fixed; top: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 500px; height: 100%; background: white; z-index: 1000; overflow-y: auto; }
+        .popup-header { padding: 15px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: #fff; }
+        .close-btn { font-size: 1.8rem; border: none; background: none; cursor: pointer; padding: 0 10px; }
+
+        /* 로딩 애니메이션 */
+        .loading { text-align: center; padding: 50px; color: #999; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header class="header">
+        <img src="https://www.lifeplanet.co.kr/resources/images/common/logo-lifeplanet.png" alt="라플로고">
+        <h1>라플 소식</h1>
+    </header>
+
+    <div id="mainContent">
+        <div class="loading">뉴스를 불러오는 중입니다...</div>
+    </div>
+</div>
+
+<div id="newsPopup">
+    <div class="popup-header">
+        <h2 style="font-size: 1.1rem; margin:0;">라플 소식 전체보기</h2>
+        <button class="close-btn" onclick="closePopup()">×</button>
+    </div>
+    <div id="popupList"></div>
+</div>
+
+<script>
+    // 2. 데이터 연동 (JavaScript)
+    
+    // [중요] 여기에 진호님의 GAS 웹 앱 URL을 붙여넣으세요!
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxT-cZWdyAmomaWbfSrdK_mrxnJhh8X4aCrpqFRsOf50rzYKMxX5YeKTZwgksbQn4dj/exec"; 
+
+    async function fetchNews() {
+        try {
+            const response = await fetch(GAS_API_URL);
+            const data = await response.json();
+            renderPage(data);
+        } catch (error) {
+            document.getElementById('mainContent').innerHTML = "<div class='loading'>데이터를 불러오지 못했습니다. GAS URL을 확인해주세요.</div>";
+        }
+    }
+
+    function renderPage(data) {
+        const mainContent = document.getElementById('mainContent');
+        const popupList = document.getElementById('popupList');
+        
+        // 1. 데이터 분류
+        const raplNews = data.filter(item => item.구분 === "라플");
+        const groupNews = data.filter(item => item.구분 === "그룹");
+        const heroNews = data.find(item => item.상단노출 === "Y") || raplNews[0];
+
+        // 2. 메인 화면 구성
+        let html = `
+            <div class="section-title">주요 뉴스 〉</div>
+            <div class="hero-article" onclick="window.open('${heroNews.기사링크}')">
+                <img src="${heroNews.이미지URL || 'https://via.placeholder.com/500x300'}" class="hero-img">
+                <div class="hero-title">${heroNews.제목}</div>
+                <div class="article-info">${heroNews.언론사} · ${heroNews.시간}</div>
+            </div>
+            <div class="article-list">
+                ${raplNews.slice(0, 3).map(item => createSmallCard(item)).join('')}
+            </div>
+            <button class="view-more-btn" onclick="openPopup()">라플 소식 더 보기 〉</button>
+            
+            <div class="section-title" style="background:#f4f6f8; margin-top:10px; padding: 20px;">교보그룹 소식 〉</div>
+            <div class="group-list">
+                ${groupNews.map(item => createSmallCard(item)).join('')}
+            </div>
+        `;
+        
+        mainContent.innerHTML = html;
+
+        // 3. 팝업 리스트 구성 (전체 라플 뉴스)
+        popupList.innerHTML = raplNews.map(item => createSmallCard(item)).join('');
+    }
+
+    function createSmallCard(item) {
+        return `
+            <a href="${item.기사링크}" target="_blank" class="article-item">
+                <div class="article-text">
+                    <h4>${item.제목}</h4>
+                    <div class="article-info">${item.언론사} · ${item.시간}</div>
+                </div>
+                <img src="${item.이미지URL || 'https://via.placeholder.com/100'}" class="article-thumbnail">
+            </a>
+        `;
+    }
+
+    function openPopup() { 
+        document.getElementById('newsPopup').style.display = 'block'; 
+        document.body.style.overflow = 'hidden';
+    }
+    function closePopup() { 
+        document.getElementById('newsPopup').style.display = 'none'; 
+        document.body.style.overflow = 'auto';
+    }
+
+    // 페이지 로드 시 데이터 가져오기 실행
+    fetchNews();
+</script>
+
+</body>
+</html>
