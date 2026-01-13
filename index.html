@@ -5,39 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>라플 PR 뉴스 센터</title>
     <style>
-        /* 1. 디자인 (CSS) */
+        /* [1] 디자인 시스템 - 삼성 뉴스 스타일 반영 */
         body { font-family: 'Pretendard', -apple-system, sans-serif; background-color: #f4f6f8; margin: 0; padding: 0; color: #333; line-height: 1.6; }
         .container { max-width: 500px; margin: 0 auto; background: white; min-height: 100vh; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
         
-        /* 헤더 */
+        /* 헤더: 로고 + 타이틀 */
         .header { background: #fff; padding: 15px 20px; display: flex; align-items: center; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 100; }
         .header img { height: 22px; margin-right: 10px; }
         .header h1 { font-size: 1.1rem; margin: 0; font-weight: 700; letter-spacing: -0.5px; }
 
         .section-title { padding: 25px 20px 10px; font-size: 1.1rem; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
 
-        /* 메인 탑 기사 */
+        /* 탑 기사 (상단 노출 Y) */
         .hero-article { padding: 0 20px 20px; cursor: pointer; border-bottom: 8px solid #f4f6f8; }
-        .hero-img { width: 100%; height: 230px; border-radius: 16px; object-fit: cover; background: #eee; }
-        .hero-title { font-size: 1.15rem; font-weight: bold; margin-top: 15px; line-height: 1.45; word-break: keep-all; }
+        .hero-img { width: 100%; height: 230px; border-radius: 16px; object-fit: cover; background: #eee; border: 1px solid #f0f0f0; }
+        .hero-title { font-size: 1.15rem; font-weight: bold; margin-top: 15px; line-height: 1.45; word-break: keep-all; color: #111; }
 
-        /* 리스트 기사 */
-        .article-item { display: flex; padding: 16px 20px; border-bottom: 1px solid #f0f0f0; gap: 15px; align-items: center; cursor: pointer; text-decoration: none; color: inherit; }
+        /* 리스트 기사 아이템 */
+        .article-item { display: flex; padding: 16px 20px; border-bottom: 1px solid #f4f4f4; gap: 15px; align-items: center; cursor: pointer; text-decoration: none; color: inherit; }
         .article-text { flex: 1; }
-        .article-text h4 { margin: 0 0 6px 0; font-size: 0.95rem; line-height: 1.4; font-weight: 600; color: #222; }
+        .article-text h4 { margin: 0 0 6px 0; font-size: 0.95rem; line-height: 1.4; font-weight: 600; color: #222; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
         .article-info { font-size: 0.8rem; color: #999; }
-        .article-thumbnail { width: 85px; height: 85px; border-radius: 12px; object-fit: cover; background: #f5f5f5; }
+        .article-thumbnail { width: 85px; height: 85px; border-radius: 12px; object-fit: cover; background: #f5f5f5; border: 1px solid #f0f0f0; }
 
-        /* 버튼 */
-        .view-more-btn { width: calc(100% - 40px); margin: 20px; padding: 14px; border: 1px solid #e0e0e0; background: #fff; border-radius: 12px; color: #666; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+        /* 더 보기 버튼 */
+        .view-more-btn { width: calc(100% - 40px); margin: 20px; padding: 14px; border: 1px solid #e0e0e0; background: #fff; border-radius: 12px; color: #666; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+        .view-more-btn:active { background: #f9f9f9; }
 
-        /* 팝업 모달 */
+        /* 전체보기 팝업 */
         #newsPopup { display: none; position: fixed; top: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 500px; height: 100%; background: white; z-index: 1000; overflow-y: auto; }
         .popup-header { padding: 15px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: #fff; }
-        .close-btn { font-size: 1.8rem; border: none; background: none; cursor: pointer; padding: 0 10px; }
+        .close-btn { font-size: 1.8rem; border: none; background: none; cursor: pointer; padding: 0 10px; color: #333; }
 
-        /* 로딩 애니메이션 */
-        .loading { text-align: center; padding: 50px; color: #999; }
+        /* 로딩 및 에러 메시지 */
+        .status-msg { text-align: center; padding: 60px 20px; color: #999; font-size: 0.9rem; }
     </style>
 </head>
 <body>
@@ -49,7 +50,7 @@
     </header>
 
     <div id="mainContent">
-        <div class="loading">뉴스를 불러오는 중입니다...</div>
+        <div class="status-msg">라플 소식을 불러오는 중입니다...</div>
     </div>
 </div>
 
@@ -62,18 +63,25 @@
 </div>
 
 <script>
-    // 2. 데이터 연동 (JavaScript)
+    /* [2] 데이터 연동 로직 */
     
-    // [중요] 여기에 진호님의 GAS 웹 앱 URL을 붙여넣으세요!
-    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbx8t4UgWDv6Z4G-kyBz2EyerZEbJf7hedw8oD9_WXY9c1mJkEfomrfSViv7iKom5SoZ3A/exec"; 
+    // 진호님의 실시간 GAS 주소
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz1oJyxu3kHat31978152NkWa9anz_psMFUgcNnDJNuH2lTBMbdnpyz7j2pPspyPc490w/exec"; 
 
     async function fetchNews() {
         try {
             const response = await fetch(GAS_API_URL);
+            if (!response.ok) throw new Error('Network response was not ok');
             const data = await response.json();
             renderPage(data);
         } catch (error) {
-            document.getElementById('mainContent').innerHTML = "<div class='loading'>데이터를 불러오지 못했습니다. GAS URL을 확인해주세요.</div>";
+            console.error('Error:', error);
+            document.getElementById('mainContent').innerHTML = `
+                <div class="status-msg">
+                    데이터를 불러오지 못했습니다.<br>
+                    1. GAS 배포 설정(모든 사용자) 확인<br>
+                    2. 시트 ID 및 컬럼명 확인이 필요합니다.
+                </div>`;
         }
     }
 
@@ -81,58 +89,72 @@
         const mainContent = document.getElementById('mainContent');
         const popupList = document.getElementById('popupList');
         
-        // 1. 데이터 분류
-        const raplNews = data.filter(item => item.구분 === "라플");
-        const groupNews = data.filter(item => item.구분 === "그룹");
-        const heroNews = data.find(item => item.상단노출 === "Y") || raplNews[0];
+        // 1. 데이터 분류 (시트 컬럼명: 섹션, 상단노출여부)
+        const raplNews = data.filter(item => item.섹션 === "라플");
+        const groupNews = data.filter(item => item.섹션 === "그룹");
+        
+        // 상단 노출 Y인 기사 찾기 (없으면 라플 첫 번째 기사)
+        const heroNews = data.find(item => item.상단노출여부 === "Y") || raplNews[0];
 
-        // 2. 메인 화면 구성
+        if (!heroNews && raplNews.length === 0) {
+            mainContent.innerHTML = "<div class='status-msg'>표시할 뉴스가 없습니다. 시트에 데이터를 입력해주세요.</div>";
+            return;
+        }
+
+        // 2. 메인 화면 HTML 생성 (시트 컬럼명: 기사URL, 이미지URL, 제목, 언론사, 시간)
         let html = `
             <div class="section-title">주요 뉴스 〉</div>
-            <div class="hero-article" onclick="window.open('${heroNews.기사링크}')">
-                <img src="${heroNews.이미지URL || 'https://via.placeholder.com/500x300'}" class="hero-img">
+            <div class="hero-article" onclick="window.open('${heroNews.기사URL}', '_blank')">
+                <img src="${heroNews.이미지URL || 'https://via.placeholder.com/500x300?text=No+Image'}" class="hero-img">
                 <div class="hero-title">${heroNews.제목}</div>
                 <div class="article-info">${heroNews.언론사} · ${heroNews.시간}</div>
             </div>
+
             <div class="article-list">
-                ${raplNews.slice(0, 3).map(item => createSmallCard(item)).join('')}
+                ${raplNews.slice(0, 3).map(item => createCard(item)).join('')}
             </div>
+
             <button class="view-more-btn" onclick="openPopup()">라플 소식 더 보기 〉</button>
             
-            <div class="section-title" style="background:#f4f6f8; margin-top:10px; padding: 20px;">교보그룹 소식 〉</div>
+            <div class="section-title" style="background:#f4f6f8; margin-top:10px; padding: 25px 20px 15px;">교보그룹 소식 〉</div>
             <div class="group-list">
-                ${groupNews.map(item => createSmallCard(item)).join('')}
+                ${groupNews.length > 0 
+                    ? groupNews.map(item => createCard(item)).join('') 
+                    : '<div class="status-msg">등록된 그룹 소식이 없습니다.</div>'}
             </div>
+            <div style="height: 40px; background: #f4f6f8;"></div>
         `;
         
         mainContent.innerHTML = html;
 
-        // 3. 팝업 리스트 구성 (전체 라플 뉴스)
-        popupList.innerHTML = raplNews.map(item => createSmallCard(item)).join('');
+        // 3. 팝업 리스트 구성
+        popupList.innerHTML = raplNews.map(item => createCard(item)).join('');
     }
 
-    function createSmallCard(item) {
+    // 공통 카드 생성 함수
+    function createCard(item) {
         return `
-            <a href="${item.기사링크}" target="_blank" class="article-item">
+            <a href="${item.기사URL}" target="_blank" class="article-item">
                 <div class="article-text">
                     <h4>${item.제목}</h4>
                     <div class="article-info">${item.언론사} · ${item.시간}</div>
                 </div>
-                <img src="${item.이미지URL || 'https://via.placeholder.com/100'}" class="article-thumbnail">
+                <img src="${item.이미지URL || 'https://via.placeholder.com/100?text=No+Img'}" class="article-thumbnail">
             </a>
         `;
     }
 
+    // 팝업 제어 함수
     function openPopup() { 
         document.getElementById('newsPopup').style.display = 'block'; 
-        document.body.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden'; // 배경 스크롤 방지
     }
     function closePopup() { 
         document.getElementById('newsPopup').style.display = 'none'; 
-        document.body.style.overflow = 'auto';
+        document.body.style.overflow = 'auto'; // 스크롤 복원
     }
 
-    // 페이지 로드 시 데이터 가져오기 실행
+    // 실행
     fetchNews();
 </script>
 
