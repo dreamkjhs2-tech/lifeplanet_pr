@@ -3,99 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>라플 소식 - 라이프플래닛</title>
+    <title>라플 소식</title>
     <style>
-        :root { --bg-gray: #f9f9f9; --text-main: #333; --text-sub: #888; }
-        body { font-family: 'Pretendard', sans-serif; margin: 0; padding: 20px; background-color: white; color: var(--text-main); }
-        h2 { font-size: 1.2rem; margin-bottom: 20px; }
+        body { font-family: 'Pretendard', sans-serif; margin: 0; padding: 16px; line-height: 1.5; color: #333; }
+        h2 { font-size: 18px; font-weight: bold; margin-bottom: 20px; }
+        .news-container { display: flex; flex-direction: column; gap: 16px; }
         
-        .news-list { display: flex; flex-direction: column; gap: 20px; }
-        .news-item { display: flex; align-items: center; gap: 15px; text-decoration: none; color: inherit; }
+        /* 뉴스 아이템 공통 스타일 */
+        .news-card { display: flex; gap: 12px; text-decoration: none; color: inherit; align-items: flex-start; }
 
-        /* 방법 1: 블러 배경 효과 썸네일 */
-        .thumb-container {
+        /* [방법1] 블러 배경 썸네일 핵심 스타일 */
+        .thumb-box {
             position: relative;
-            width: 90px;
-            height: 90px;
-            min-width: 90px;
-            overflow: hidden;
-            border-radius: 12px;
-            background-color: #eee;
+            width: 80px; height: 80px; min-width: 80px;
+            border-radius: 8px; overflow: hidden; background-color: #f0f0f0;
         }
-        .thumb-blur-bg {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-size: cover;
-            background-position: center;
-            filter: blur(8px) brightness(0.8);
-            transform: scale(1.2);
-            z-index: 1;
+        .bg-blur {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-size: cover; background-position: center;
+            filter: blur(8px) brightness(0.9); transform: scale(1.2); z-index: 1;
         }
-        .thumb-main-img {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            object-fit: contain;
-            z-index: 2;
+        .main-img {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: contain; z-index: 2;
         }
 
-        .news-info { display: flex; flex-direction: column; gap: 4px; }
-        .news-title { font-size: 1rem; font-weight: 600; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        .news-meta { font-size: 0.8rem; color: var(--text-sub); }
+        .news-txt { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+        .title { font-size: 15px; font-weight: 600; color: #222; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        .meta { font-size: 13px; color: #888; }
 
-        /* 상단 노출 주요 뉴스 스타일 */
-        .top-news { margin-bottom: 30px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
-        .top-news .thumb-container { width: 100%; height: 180px; margin-bottom: 12px; }
+        /* 상단 노출(Y) 스타일 */
+        .featured { flex-direction: column; border-bottom: 1px solid #eee; padding-bottom: 16px; margin-bottom: 4px; }
+        .featured .thumb-box { width: 100%; height: 180px; }
     </style>
 </head>
 <body>
 
-    <div id="app">
-        <h2>라플 소식</h2>
-        <div id="top-news-container"></div>
-        <div id="news-list" class="news-list">
-            </div>
-    </div>
+    <h2>라플 소식</h2>
+    <div id="news-list" class="news-container">
+        </div>
 
     <script>
-        const GAS_URL = "https://script.google.com/macros/s/AKfycby4OAH3hoDTbt3PQUwksvzybRPYNHJhfdK_-ZcAC_eExwLJZrYiHpqYHW1YIGasnoOC6w/exec";
+        // 중요: 배포한 웹 앱 URL을 아래에 꼭 넣으세요!
+        const API_URL = "https://script.google.com/macros/s/AKfycbyCJbWg2LwFuJhJrem7yf3nngANWWQGjLiGBQHg9-tKF73a-OSjrCkR8Xmn-3s-yIW_sQ/exec";
 
-        async function fetchNews() {
+        async function loadNews() {
             try {
-                const response = await fetch(GAS_URL);
-                const data = await response.json();
-                renderNews(data);
-            } catch (e) {
-                console.error("데이터 로드 실패:", e);
+                const res = await fetch(API_URL);
+                const data = await res.json();
+                const container = document.getElementById('news-list');
+                container.innerHTML = ''; // 로딩 문구 제거
+
+                data.forEach(item => {
+                    // 상단노출여부가 'Y'인 경우 클래스 추가
+                    const isTop = item['상단노출여부'] === 'Y' ? 'featured' : '';
+                    
+                    const html = `
+                        <a href="${item['기사URL']}" class="news-card ${isTop}" target="_blank">
+                            <div class="thumb-box">
+                                <div class="bg-blur" style="background-image: url('${item['이미지URL']}')"></div>
+                                <img src="${item['이미지URL']}" class="main-img" onerror="this.src='https://via.placeholder.com/80?text=No+Img'">
+                            </div>
+                            <div class="news-txt">
+                                <div class="title">${item['제목']}</div>
+                                <div class="meta">${item['언론사']} · ${item['시간']}</div>
+                            </div>
+                        </a>
+                    `;
+                    container.insertAdjacentHTML('beforeend', html);
+                });
+            } catch (err) {
+                document.getElementById('news-list').innerText = "데이터를 불러오지 못했습니다.";
             }
         }
 
-        function renderNews(data) {
-            const listContainer = document.getElementById('news-list');
-            const topContainer = document.getElementById('top-news-container');
-            
-            data.forEach(item => {
-                const newsHtml = `
-                    <a href="${item.기사URL}" class="news-item ${item.상단노출여부 === 'Y' ? 'top-news' : ''}" target="_blank">
-                        <div class="thumb-container">
-                            <div class="thumb-blur-bg" style="background-image: url('${item.이미지URL}')"></div>
-                            <img src="${item.이미지URL}" class="thumb-main-img">
-                        </div>
-                        <div class="news-info">
-                            <div class="news-title">${item.제목}</div>
-                            <div class="news-meta">${item.언론사} · ${item.시간}</div>
-                        </div>
-                    </a>
-                `;
-
-                if (item.상단노출여부 === 'Y') {
-                    topContainer.innerHTML += newsHtml;
-                } else {
-                    listContainer.innerHTML += newsHtml;
-                }
-            });
-        }
-
-        fetchNews();
+        loadNews();
     </script>
 </body>
 </html>
