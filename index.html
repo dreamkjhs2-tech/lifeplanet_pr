@@ -26,7 +26,42 @@
         .article-text { flex: 1; }
         .article-text h4 { margin: 0 0 6px 0; font-size: 0.95rem; line-height: 1.4; font-weight: 600; color: #222; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
         .article-info { font-size: 0.8rem; color: #999; }
-        .article-thumbnail { width: 85px; height: 85px; border-radius: 12px; object-fit: cover; background: #f5f5f5; border: 1px solid #f0f0f0; }
+        
+        /* --- [수정] 블러 배경 효과를 위한 새로운 썸네일 스타일 --- */
+        /* 기존 .article-thumbnail 스타일은 삭제하고 아래 3개 클래스로 대체합니다. */
+
+        /* 1. 썸네일 전체를 감싸는 틀 */
+        .thumb-wrapper {
+            position: relative;
+            width: 85px;
+            height: 85px;
+            border-radius: 12px;
+            overflow: hidden; /* 블러가 밖으로 튀어나가지 않게 자름 */
+            border: 1px solid #f0f0f0;
+            flex-shrink: 0; /* 리스트에서 찌그러지지 않게 고정 */
+            background: #f5f5f5; /* 이미지 로딩 전 기본 배경색 */
+        }
+
+        /* 2. 뒤에 깔리는 흐릿한 배경 레이어 */
+        .thumb-bg-blur {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-size: cover;
+            background-position: center;
+            filter: blur(5px) brightness(0.95); /* 흐리게 하고 약간 어둡게 */
+            transform: scale(1.2); /* 블러 경계선이 하얗게 보이는 것 방지용 확대 */
+            z-index: 1;
+        }
+
+        /* 3. 실제 보여질 메인 이미지 레이어 */
+        .thumb-main-img {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: contain; /* 이미지 비율 유지하며 전체 다 보여주기 */
+            z-index: 2; /* 배경 위에 올라오도록 */
+        }
+        /* --------------------------------------------------- */
+
 
         /* 더 보기 버튼 */
         .view-more-btn { width: calc(100% - 40px); margin: 20px; padding: 14px; border: 1px solid #e0e0e0; background: #fff; border-radius: 12px; color: #666; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
@@ -66,7 +101,7 @@
     /* [2] 데이터 연동 로직 */
     
     // 진호님의 실시간 GAS 주소
-    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwRx6FmJny0i4lxKRxvSdqgVbN92HvuUmck6L6ZCwP1WXGCp9xzjRVHhHWxHRU1qSU/exec"; 
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycby9q3WOObBzZXNRKzhL4Ji5cKkAC8OoNKRbK3iPGvlO1hAjPILG-eelo1ZMC2DwkZr__A/exec"; 
 
     async function fetchNews() {
         try {
@@ -131,18 +166,28 @@
         popupList.innerHTML = raplNews.map(item => createCard(item)).join('');
     }
 
-    // 공통 카드 생성 함수
+    // --- [수정] 공통 카드 생성 함수 (블러 구조 적용) ---
     function createCard(item) {
+        const imgUrl = item.이미지URL || 'https://via.placeholder.com/100?text=No+Img';
+        
+        // 블러 배경을 위한 새로운 HTML 구조
+        const thumbnailHtml = `
+            <div class="thumb-wrapper">
+                <div class="thumb-bg-blur" style="background-image: url('${imgUrl}')"></div>
+                <img src="${imgUrl}" class="thumb-main-img" alt="${item.제목}">
+            </div>
+        `;
+
         return `
             <a href="${item.기사URL}" target="_blank" class="article-item">
                 <div class="article-text">
                     <h4>${item.제목}</h4>
                     <div class="article-info">${item.언론사} · ${item.시간}</div>
                 </div>
-                <img src="${item.이미지URL || 'https://via.placeholder.com/100?text=No+Img'}" class="article-thumbnail">
-            </a>
+                ${thumbnailHtml} </a>
         `;
     }
+    // ---------------------------------------------------
 
     // 팝업 제어 함수
     function openPopup() { 
